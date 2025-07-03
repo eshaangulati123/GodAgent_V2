@@ -1,0 +1,13 @@
+This is a test file for testing the intelligent file upload functionality.
+
+This file contains "n8n" in its name to test whether the system can:
+1. Find files based on keyword matching
+2. Select the best candidate from multiple matches
+3. Successfully upload the file to a web form
+
+Test scenarios:
+- Search for "n8n file" should find this file
+- Search for "test file" should also find this file
+- The system should rank this appropriately based on relevance scoring
+
+File upload test completed successfully if this file is selected and uploaded. 

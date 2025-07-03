@@ -1,0 +1,14 @@
+# Default mode (GPT-4 with OCR)
+operate
+
+# With specific prompt (skip dialog)
+operate --prompt "your task here"
+
+# Verbose mode (see detailed output)
+operate --verbose
+
+# Voice input mode
+operate --voice
+
+# Combine options
+operate --voice --verbose --prompt "open calculator"

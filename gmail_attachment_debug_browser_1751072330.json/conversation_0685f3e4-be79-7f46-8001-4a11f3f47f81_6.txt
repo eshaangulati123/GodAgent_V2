@@ -1,0 +1,517 @@
+ SystemMessage 
+You are a tool-using AI agent designed operating in an iterative loop to automate browser tasks. Your ultimate goal is accomplishing the task provided in <user_request>.
+
+<intro>
+You excel at following tasks:
+1. Navigating complex websites and extracting precise information
+2. Automating form submissions and interactive web actions
+3. Gathering and saving information 
+4. Using your filesystem effectively to decide what to keep in your context
+5. Operate effectively in an agent loop
+6. Efficiently performing diverse web tasks
+</intro>
+
+<language_settings>
+- Default working language: **English**
+- Use the language specified by user in messages as the working language in all messages and tool calls
+</language_settings>
+
+<input>
+At every step, you will be given a state with: 
+1. Agent History: A chronological event stream including your previous actions and their results. This may be partially omitted.
+2. User Request: This is your ultimate objective and always remains visible.
+3. Agent State: Current progress, and relevant contextual memory.
+4. Browser State: Contains current URL, open tabs, interactive elements indexed for actions, visible page content, and (sometimes) screenshots.
+4. Read State: If your previous action involved reading a file or extracting content (e.g., from a webpage), the full result will be included here. This data is **only shown in the current step** and will not appear in future Agent History. You are responsible for saving or interpreting the information appropriately during this step into your file system.
+</input>
+
+<agent_history>
+Agent history will be given as a list of step information as follows:
+
+Step step_number:
+Evaluation of Previous Step: Assessment of last action
+Memory: Agent generated memory of this step
+Actions: Agent generated actions
+Action Results: System generated result of those actions
+</agent_history>
+
+<user_request>
+USER REQUEST: This is your ultimate objective and always remains visible.
+- This has the highest priority. Make the user happy.
+- If the user request is very specific - then carefully follow each step and dont skip or hallucinate steps.
+- If the task is open ended you can plan more yourself how to get it done.
+</user_request>
+
+<agent_state>
+Agent State will be given as follows:
+
+File System: A summary of your available files in the format:
+- file_name â€” num_lines lines
+
+Current Step: The step in the agent loop.
+
+Timestamp: Current date.
+</agent_state>
+
+<browser_state>
+1. Browser State will be given as:
+
+Current URL: URL of the page you are currently viewing.
+Open Tabs: Open tabs with their indexes.
+Interactive Elements: All interactive elements will be provided in format as [index]<type>text</type> where
+- index: Numeric identifier for interaction
+- type: HTML element type (button, input, etc.)
+- text: Element description
+
+Examples:
+[33]<div>User form</div>
+\t*[35]*<button aria-label='Submit form'>Submit</button>
+
+Note that:
+- Only elements with numeric indexes in [] are interactive
+- (stacked) indentation (with \t) is important and means that the element is a (html) child of the element above (with a lower index)
+- Elements with \* are new elements that were added after the previous step (if url has not changed)
+- Pure text elements without [] are not interactive.
+</browser_state>
+
+<browser_vision>
+When a screenshot is provided, analyse it to understand the interactive elements and try to understand what each interactive element is for. Bounding box labels correspond to element indexes. 
+</browser_vision>
+
+<read_state>
+1. This section will be displayed only if your previous action was one that returns transient data to be consumed.
+2. You will see this information **only during this step** in your state. ALWAYS make sure to save this information if it will be needed later.
+</read_state>
+
+<browser_rules>
+Strictly follow these rules while using the browser and navigating the web:
+- Only interact with elements that have a numeric [index] assigned.
+- Only use indexes that are explicitly provided.
+- If research is needed, use "open_tab" tool to open a **new tab** instead of reusing the current one.
+- If the page changes after, for example, an input text action, analyse if you need to interact with new elements, e.g. selecting the right option from the list.
+- By default, only elements in the visible viewport are listed. Use scrolling tools if you suspect relevant content is offscreen which you need to interact with. Scroll ONLY if there are more pixels below or above the page. The extract content action gets the full loaded page content.
+- If a captcha appears, attempt solving it if possible. If not, use fallback strategies (e.g., alternative site, backtrack).
+- If expected elements are missing, try refreshing, scrolling, or navigating back.
+- Use multiple actions where no page transition is expected (e.g., fill multiple fields then click submit).
+- If the page is not fully loaded, use the wait action.
+- You can call "extract_structured_data" on specific pages to gather structured semantic information from the entire page, including parts not currently visible. If you see results in your read state, these are displayed only once, so make sure to save them if necessary.
+- If you fill an input field and your action sequence is interrupted, most often something changed e.g. suggestions popped up under the field.
+- If the USER REQUEST includes specific page information such as product type, rating, price, location, etc., try to apply filters to be more efficient. Sometimes you need to scroll to see all filter options.
+- The USER REQUEST is the ultimate goal. If the user specifies explicit steps, they have always the highest priority.
+</browser_rules>
+
+<file_system>
+- You have access to a persistent file system which you can use to track progress, store results, and manage long tasks.
+- Your file system is initialized with two files:
+  1. `todo.md`: Use this to keep a checklist for known subtasks. Update it to mark completed items and track what remains. This file should guide your step-by-step execution when the task involves multiple known entities (e.g., a list of links or items to visit). The contents of this file will be also visible in your state. ALWAYS use `write_file` to rewrite entire `todo.md` when you want to update your progress. NEVER use `append_file` on `todo.md` as this can explode your context.
+  2. `results.md`: Use this to accumulate extracted or generated results for the user. Append each new finding clearly and avoid duplication. This file serves as your output log.
+- You can read, write, and append to files.
+- Note that `write_file` rewrites the entire file, so make sure to repeat all the existing information if you use this action.
+- When you `append_file`, ALWAYS put newlines in the beginning and not at the end.
+- Always use the file system as the source of truth. Do not rely on memory alone for tracking task state.
+</file_system>
+
+<task_completion_rules>
+You must call the `done` action in one of two cases:
+- When you have fully completed the USER REQUEST.
+- When you reach the final allowed step (`max_steps`), even if the task is incomplete.
+- If it is ABSOLUTELY IMPOSSIBLE to continue.
+
+The `done` action is your opportunity to terminate and share your findings with the user.
+- Set `success` to `true` only if the full USER REQUEST has been completed with no missing components.
+- If any part of the request is missing, incomplete, or uncertain, set `success` to `false`.
+- You can use the `text` field of the `done` action to communicate your findings and `files_to_display` to send file attachments to the user, e.g. `["results.md"]`.
+- Combine `text` and `files_to_display` to provide a coherent reply to the user and fulfill the USER REQUEST.
+- You are ONLY ALLOWED to call `done` as a single action. Don't call it together with other actions.
+- If the user asks for specified format, such as "return JSON with following structure", "return a list of format...", MAKE sure to use the right format in your answer.
+</task_completion_rules>
+
+<action_rules>
+- You are allowed to use a maximum of 15 actions per step.
+
+If you are allowed multiple actions:
+- You can specify multiple actions in the list to be executed sequentially (one after another). But always specify only one action name per item.
+- If the page changes after an action, the sequence is interrupted and you get the new state. You might have to repeat the same action again so that your changes are reflected in the new state.
+- ONLY use multiple actions when actions should not change the page state significantly.
+
+If you are allowed 1 action, ALWAYS output only 1 most reasonable action per step. If you have something in your read_state, always prioritize saving the data first.
+</action_rules>
+
+<reasoning_rules>
+You must reason explicitly and systematically at every step in your `thinking` block. 
+
+Exhibit the following reasoning patterns to successfully achieve the <user_request>:
+- Reason about <agent_history> to track progress and context toward <user_request>.
+- Analyze the most recent "Next Goal" and "Action Result" in <agent_history> and clearly state what you previously tried to achieve.
+- Analyze all relevant items in <agent_history>, <browser_state>, <read_state>, <file_system>, <read_state> and the screenshot to understand your state.
+- Explicitly judge success/failure/uncertainty of the last action.
+- If todo.md is empty and the task is multi-step, generate a stepwise plan in todo.md using file tools.
+- Analyze `todo.md` to guide and track your progress. 
+- If any todo.md items are finished, mark them as complete in the file.
+- Analyze the <read_state> where one-time information are displayed due to your previous action. Reason about whether you want to keep this information in memory and plan writing them into a file if applicable using the file tools.
+- If you see information relevant to <user_request>, plan saving the information into a file.
+- Decide what concise, actionable context should be stored in memory to inform future reasoning.
+- When ready to finish, state you are preparing to call done and communicate completion/results to the user.
+- Before done, use read_file to verify file contents intended for user output.
+</reasoning_rules>
+
+<output>
+You must ALWAYS respond with a valid JSON in this exact format:
+
+{
+  "thinking": "A structured <think>-style reasoning block that applies the <reasoning_rules> provided above.",
+  "evaluation_previous_goal": "One-sentence analysis of your last action. Clearly state success, failure, or uncertain.",
+  "memory": "1-3 sentences of specific memory of this step and overall progress. You should put here everything that will help you track progress in future steps. Like counting pages visited, items found, etc.",
+  "next_goal": "State the next immediate goals and actions to achieve it, in one clear sentence."
+  "action":[{"one_action_name": {// action-specific parameter}}, // ... more actions in sequence]
+}
+
+Action list should NEVER be empty.
+</output>
+
+ HumanMessage 
+<example_1>
+Here is an example output of thinking and tool call. You can use it as a reference but do not copy it exactly.
+
+ AIMessage 
+
+
+ ToolMessage 
+Data written to todo.md.
+Data written to github.md.
+Clicked element with index 4.
+</example_1>
+
+ HumanMessage 
+<agent_history>
+Agent initialized.
+## Step 1
+Step evaluation: N/A - Initial step.
+Step memory: Starting the process to send an email via Gmail with an attachment from the Downloads folder.
+Step goal: Open a new tab and navigate to Gmail to begin composing the email.
+Action 1/1 response: Opened new tab with URL https://mail.google.com
+
+## Step 2
+Step evaluation: Opened Gmail successfully and identified the 'Compose' button. Verdict: Success
+Step memory: Gmail is open, and the 'Compose' button is identified for starting the email composition.
+Step goal: Click the 'Compose' button to start composing the email.
+Action 1/1 response: Clicked element 15
+
+## Step 3
+Step evaluation: Clicked the 'Compose' button successfully. Verdict: Success
+Step memory: Email composition window is open. Next steps involve filling in email details and attaching a file.
+Step goal: Input recipient's email, subject, and message content, then locate and click the attachment icon.
+Action 1/2 response: Input 'eshaangulati3221@gmail.com' into element 106.
+Action 2/2 response: Element index changed after action 1 / 4, because page changed.
+
+## Step 4
+Step evaluation: Input recipient's email successfully, but page change caused index shift. Verdict: Success with adjustment needed.
+Step memory: Recipient's email inputted. Next steps: input subject, message, and attach file using icon at index 132.
+Step goal: Input the subject 'Test Email' and message content, then click the attachment icon with index 132 to attach the file.
+Action 1/2 response: Input 'Test Email' into element 105.
+Action 2/2 response: Element index changed after action 1 / 3, because page changed.
+</agent_history>
+<agent_state>
+<user_request>
+open Gmail, send email to eshaangulati3221@gmail.com with subject 'Test Email' and attach the n8n file from downloads folder
+
+CRITICAL GMAIL ATTACHMENT WORKFLOW - FOLLOW EXACTLY:
+
+1. First, compose the email (recipient, subject, message content)
+
+2. FIND THE ATTACHMENT ICON - Look for ANY of these elements:
+   - A paperclip icon (📎) in the toolbar
+   - Button with text "Attach files" 
+   - Button with tooltip "Attach files" 
+   - Any icon that looks like a paperclip
+   - CSS selector: [aria-label*="Attach"], [title*="Attach"], [data-tooltip*="Attach"]
+
+3. **CRITICALLY IMPORTANT**: CLICK on the attachment icon/button 
+   - Use EXACT CLICK action on the attachment element
+   - DO NOT skip this step - the file dialog MUST open
+   - If you see a paperclip or attachment icon, CLICK IT
+
+4. After clicking, a file browser dialog should open
+   - Navigate to Downloads folder
+   - Look for the file specified in the task
+   - Select the file and confirm
+
+5. Wait for file upload progress to complete (green checkmark or progress indicator)
+
+6. Only then click Send
+
+THE MOST COMMON FAILURE: Not clicking the attachment icon. ALWAYS CLICK THE PAPERCLIP/ATTACHMENT ICON FIRST.
+</user_request>
+<file_system>
+- results.md — 0 lines
+- todo.md — 0 lines
+
+</file_system>
+<todo_contents>
+[Current todo.md is empty, fill it with your plan when applicable]
+</todo_contents>
+<step_info>
+Step 5 of 100 max possible steps
+Current date and time: 2025-06-27 18:00
+</step_info>
+</agent_state>
+<browser_state>
+Current tab: 0
+Available tabs:
+Tab 0: https://mail.google.com/mail/u/0/#inbox?compose=new - Inbox (1,619) - eshaangulati32
+
+Interactive elements from top layer of the current page inside the viewport:
+[Start of page]
+[0]<div  />
+	[1]<div aria-expanded='true' aria-label='Main menu' role='button' />
+	[2]<a aria-label='Gmail' title='Gmail' />
+	[3]<form role='search' />
+		[4]<td  />
+			[5]<input aria-label='Search mail' placeholder='Search mail' value='' name='q' type='text' />
+		[6]<button type='button' aria-label='Advanced search options' />
+		[7]<button aria-label='Search mail' />
+	[8]<div  />
+		[9]<a role='button' aria-label='Support' aria-expanded='false' />
+	[10]<div  />
+		[11]<a role='button' aria-label='Settings' aria-expanded='false' />
+	[12]<button aria-label='Ask Gemini' />
+	[13]<div  />
+		[14]<a aria-label='Google apps' aria-expanded='false' role='button' />
+	[15]<a aria-expanded='false' aria-label='Google Account: Eshaan Gulati  
+(eshaangulati3221@gmail.com)' role='button' />
+	[16]<div role='navigation' />
+		[17]<div role='button'>Compose />
+		[18]<div  />
+			[19]<a aria-label='Inbox 1619 unread'>Inbox />
+			1,619
+			[20]<div  />
+				[21]<a >Starred />
+			[22]<div  />
+				[23]<a >Snoozed />
+			[24]<div  />
+				[25]<a >Sent />
+			[26]<div  />
+				[27]<a aria-label='Drafts 13 unread'>Drafts />
+				13
+			[28]<span role='button' aria-label='More labels' />
+				More
+				[29]<span  />
+			Labels
+			[30]<div aria-label='Create new label' role='button' type='button' />
+			[31]<div  />
+				[32]<a aria-label='Notes has menu'>Notes />
+	[33]<div  />
+		[34]<div role='button' aria-expanded='false' aria-label='Select' />
+			[35]<div  />
+				[36]<span aria-checked='false' role='checkbox' />
+		[37]<div role='button' aria-label='Refresh' />
+			[38]<div  />
+		[39]<div role='button' aria-label='More email options' aria-expanded='false' />
+			[40]<div  />
+	[41]<div  />
+		[42]<div role='button' aria-expanded='false' aria-label='Show more messages' />
+			[43]<span >of />
+				[44]<span >– />
+					1
+					50
+				2,007
+		[45]<div role='button' aria-label='Newer' />
+		[46]<div role='button' aria-label='Older' />
+	[47]<div  />
+		[48]<a role='button' aria-label='Input tools on/off (Ctrl-Shift-K)' />
+		[49]<a role='button' aria-label='Select input tool' />
+	[50]<tr role='tablist' />
+		[51]<div role='tab' aria-label='Primary' />
+			Primary
+		[52]<div role='tab' aria-label='Promotions, 50 new messages,' />
+			50 new
+			Promotions
+			Timberland — Up to 40% Off: Fourth of July Sale Starts NOW!
+		[53]<div role='tab' aria-label='Social, 42 new messages,' />
+			42 new
+			Social
+			Yashasavini Arora — You have an invitation
+		[54]<div role='tab' aria-label='Updates, 50 new messages,' />
+			50 new
+			Updates
+			LinkedIn Job Alerts — “Software Engineer”: BNSF Railway - Software Engineer I/II (SAP Full Stack Development) (Remote - US) and more
+	[55]<div role='checkbox' aria-checked='false' />
+	[56]<span aria-label='Not starred' role='button' />
+	Google
+	[57]<div role='link' />
+		Security alert
+		-
+		A new sign-in on Windows eshaangulati3221@gmail.com We noticed a new sign-in to your Google Account on a Windows device. If this was you, you don't need to do anything. If not, we'll help you
+	3:54 PM
+	[58]<div role='checkbox' aria-checked='false' />
+	[59]<span aria-label='Not starred' role='button' />
+	Siddharth Nagisetty.
+	Siddharth just messaged you
+	-
+	[60]<div role='checkbox' aria-checked='false' />
+	[61]<span aria-label='Not starred' role='button' />
+	Chase
+	Your balance is below $50.00 for account ending in (...3815)
+	[62]<div role='checkbox' aria-checked='false' />
+	[63]<span aria-label='Not starred' role='button' />
+	Google
+	Security alert for eshaangulati123@gmail.com
+	-
+	[64]<div role='checkbox' aria-checked='false' />
+	[65]<span aria-label='Not starred' role='button' />
+	Eshaan Gulati
+	(no subject)
+	-
+	[66]<div role='checkbox' aria-checked='false' />
+	[67]<span aria-label='Not starred' role='button' />
+	Google
+	4
+	Security alert
+	-
+	[68]<div role='checkbox' aria-checked='false' />
+	[69]<span aria-label='Not starred' role='button' />
+	Chase
+	You added or edited April as a Zelle recipient
+	-
+	[70]<div role='checkbox' aria-checked='false' />
+	[71]<span aria-label='Not starred' role='button' />
+	Chase
+	Eshaan, check out your new Chase Offers
+	-
+	[72]<div role='checkbox' aria-checked='false' />
+	[73]<span aria-label='Not starred' role='button' />
+	Chase
+	2
+	We canceled your Zelle® payment
+	-
+	[74]<div role='checkbox' aria-checked='false' />
+	[75]<span aria-label='Not starred' role='button' />
+	Chase
+	You added or edited Dk as a Zelle recipient
+	-
+	[76]<div role='checkbox' aria-checked='false' />
+	[77]<span aria-label='Not starred' role='button' />
+	Chase
+	You added or edited Dhruv  as a Zelle recipient
+	-
+	[78]<div role='checkbox' aria-checked='false' />
+	[79]<span aria-label='Not starred' role='button' />
+	LinkedIn News
+	Student loan collection intensifies
+	-
+	[80]<div role='checkbox' aria-checked='false' />
+	[81]<span aria-label='Not starred' role='button' />
+	Chase
+	Your balance is below $50.00 for account ending in (...3815)
+	[82]<div role='checkbox' aria-checked='false' />
+	[83]<span aria-label='Not starred' role='button' />
+	Google
+	Security alert for eshaangulati123@gmail.com
+	-
+	[84]<div role='checkbox' aria-checked='false' />
+	[85]<span aria-label='Not starred' role='button' />
+	Google
+	Someone added you as their recovery email
+	-
+	[86]<div role='tablist' />
+		[87]<div role='tab' aria-label='Calendar' />
+		[88]<div role='tab' aria-label='Keep' />
+		[89]<div role='tab' aria-label='Tasks' />
+		[90]<div role='tab' aria-label='Contacts' />
+		[91]<div role='separator' />
+		[92]<div role='tab' aria-label='Get Add-ons' />
+	[93]<div role='button' aria-label='Hide side panel' />
+[94]<div  />
+	New Message
+	[95]<img  />
+[96]<div  />
+	[97]<div role='region' aria-label='New Message' />
+		[98]<div  />
+		*[99]*<form  />
+			[100]<div  />
+				[101]<span aria-label='To - Select contacts' role='link'>To />
+				[102]<div  />
+					[103]<div  />
+					[104]<div  />
+						[105]<div role='listbox' aria-label='Search Field' />
+							*[106]*<input aria-label='To recipients' aria-expanded='false' placeholder='' type='text' role='combobox' />
+					[107]<div  />
+					[108]<span  />
+						[109]<div  />
+						[110]<span role='link' aria-label='Add Cc recipients ‪(Ctrl-Shift-C)‬'>Cc />
+						[111]<span role='link' aria-label='Add Bcc recipients ‪(Ctrl-Shift-B)‬'>Bcc />
+						[112]<div  />
+			*[113]*<div  />
+				[114]<div  />
+				*[115]*<input name='subjectbox' placeholder='Subject' aria-label='Subject' />
+		[116]<div  />
+			[117]<div  />
+				[118]<div  />
+				[119]<div  />
+					[120]<td  />
+						[121]<div aria-label='Message Body' role='textbox' />
+		[122]<div  />
+		*[123]*<div role='button' aria-label='Send ‪(Ctrl-Enter)‬'>Send />
+		[124]<div role='button' aria-label='More send options' aria-expanded='false' />
+		[125]<td  />
+			[126]<div role='button' aria-expanded='false' />
+				[127]<div  />
+					[128]<div  />
+						[129]<div  />
+		[130]<div  />
+			[131]<div aria-label='Help me write (Alt + H)' role='button' aria-expanded='false' />
+				[132]<div  />
+					[133]<div  />
+						[134]<div  />
+			[135]<div aria-label='Attach files' role='button' aria-expanded='false' />
+				[136]<div  />
+					[137]<div  />
+						[138]<div  />
+			[139]<div aria-label='Insert link ‪(Ctrl-K)‬' role='button' aria-expanded='false' />
+				[140]<div  />
+					[141]<div  />
+						[142]<div  />
+			[143]<div aria-label='Insert emoji ‪(Ctrl-Shift-2)‬' role='button' aria-expanded='false' />
+				[144]<div  />
+					[145]<div  />
+						[146]<div  />
+			[147]<div aria-label='Insert files using Drive' role='button' aria-expanded='false' />
+				[148]<div  />
+					[149]<div  />
+						[150]<div  />
+			[151]<div aria-label='Insert photo' role='button' aria-expanded='false' />
+				[152]<div  />
+					[153]<div  />
+						[154]<div  />
+			[155]<div aria-label='Toggle confidential mode' role='button' aria-expanded='false' />
+				[156]<div  />
+					[157]<div  />
+						[158]<div  />
+			[159]<div aria-label='Insert signature' role='button' aria-expanded='false' />
+				[160]<div  />
+					[161]<div  />
+						[162]<div  />
+		[163]<div role='button' aria-expanded='false' aria-label='More options' />
+		*[164]*<div role='button' aria-label='Discard draft ‪(Ctrl-Shift-D)‬' />
+			[165]<div  />
+				[166]<div  />
+[End of page]
+</browser_state>
+<read_state>
+
+</read_state>
+
+ RESPONSE
+{
+  "thinking": "I have successfully input the subject 'Test Email' into the email composition window. The next critical step is to attach the file from the Downloads folder. I need to locate and click the attachment icon, which is identified as index 135 in the current browser state. This step is crucial to open the file dialog and proceed with attaching the file.\nThe subject was input successfully, but the page change caused another index shift. Verdict: Success with adjustment needed.\nThe recipient's email and subject are set. The next step is to click the attachment icon at index 135 to open the file dialog.\nI will click the attachment icon at index 135 to proceed with attaching the file.",
+  "evaluation_previous_goal": "Input the subject 'Test Email' successfully, but index shift occurred. Verdict: Success with adjustment needed.",
+  "memory": "Recipient's email and subject are set. Next step is to attach the file using the icon at index 135.",
+  "next_goal": "Click the attachment icon at index 135 to open the file dialog for attaching the file.",
+  "action": [
+    {
+      "click_element_by_index": {
+        "index": 135
+      }
+    }
+  ]
+}

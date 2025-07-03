@@ -1,0 +1,51 @@
+{"level":30,"time":"2025-06-25T18:37:33.407Z","pid":14264,"hostname":"Eshaanlap","msg":"Listening on 127.0.0.1:57407"}
+(node:14264) DeprecationWarning: Calling start() is no longer necessary. It can be safely omitted.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{"level":30,"time":"2025-06-25T18:37:33.888Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2025-06-25T18:37:33.888Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2025-06-25T18:37:33.889Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method newPersistentContext"}
+{"level":30,"time":"2025-06-25T18:37:34.428Z","pid":14264,"hostname":"Eshaanlap","msg":"Adding browser to stack: chromium, version: undefined"}
+{"level":30,"time":"2025-06-25T18:37:34.429Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method newPersistentContext"}
+{"level":30,"time":"2025-06-25T18:37:34.428Z","pid":14264,"hostname":"Eshaanlap","msg":"currentBrowser: [object Object]"}
+{"level":30,"time":"2025-06-25T18:37:34.429Z","pid":14264,"hostname":"Eshaanlap","msg":"Changed active context"}
+{"level":30,"time":"2025-06-25T18:37:34.436Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method newPage"}
+{"level":30,"time":"2025-06-25T18:37:34.436Z","pid":14264,"hostname":"Eshaanlap","msg":"currentBrowser: [object Object]"}
+{"level":30,"time":"2025-06-25T18:37:34.505Z","pid":14264,"hostname":"Eshaanlap","msg":"Video path: undefined"}
+{"level":30,"time":"2025-06-25T18:37:34.505Z","pid":14264,"hostname":"Eshaanlap","msg":"Changed active page"}
+{"level":30,"time":"2025-06-25T18:37:36.967Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method newPage"}
+{"level":30,"time":"2025-06-25T18:37:41.991Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method closeBrowser"}
+{"level":30,"time":"2025-06-25T18:37:42.019Z","pid":14264,"hostname":"Eshaanlap","msg":"Removed page=3e6485ce-b51c-4cc6-8fc7-2d971480a147 from context=6a58cdc4-1a6e-4453-99dd-9b93e7b8c8dd page stack"}
+{"level":30,"time":"2025-06-25T18:37:42.021Z","pid":14264,"hostname":"Eshaanlap","msg":"Removed page=90076230-06e1-409f-b6e4-2e8e6fd7768b from context=6a58cdc4-1a6e-4453-99dd-9b93e7b8c8dd page stack"}
+{"level":30,"time":"2025-06-25T18:37:42.270Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method closeBrowser"}
+================= Original suppressed error =================
+Error: Browser has been closed.
+    at PlaywrightState.getActiveBrowser (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\index.js:12226:15)
+    at PlaywrightServer.getActiveBrowser (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\index.js:13122:59)
+    at PlaywrightServer.setTimeout (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\index.js:13370:57)
+    at Object.onReceiveHalfClose (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server.js:1461:25)
+    at BaseServerInterceptingCall.maybePushNextMessage (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server-interceptors.js:575:31)
+    at BaseServerInterceptingCall.handleEndEvent (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server-interceptors.js:615:14)
+    at ServerHttp2Stream.<anonymous> (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server-interceptors.js:382:18)
+    at ServerHttp2Stream.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+=============================================================
+{"level":30,"time":"2025-06-25T18:37:42.279Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2025-06-25T18:37:42.279Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method getBrowserCatalog"}
+================= Original suppressed error =================
+Error: Browser has been closed.
+    at PlaywrightState.getActiveBrowser (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\index.js:12226:15)
+    at PlaywrightServer.getActiveBrowser (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\index.js:13122:59)
+    at PlaywrightServer.setTimeout (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\index.js:13370:57)
+    at Object.onReceiveHalfClose (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server.js:1461:25)
+    at BaseServerInterceptingCall.maybePushNextMessage (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server-interceptors.js:575:31)
+    at BaseServerInterceptingCall.handleEndEvent (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server-interceptors.js:615:14)
+    at ServerHttp2Stream.<anonymous> (C:\Users\eshaa\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\Browser\wrapper\node_modules\@grpc\grpc-js\build\src\server-interceptors.js:382:18)
+    at ServerHttp2Stream.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+=============================================================
+{"level":30,"time":"2025-06-25T18:37:42.286Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2025-06-25T18:37:42.286Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2025-06-25T18:37:42.328Z","pid":14264,"hostname":"Eshaanlap","msg":"Start of node method closeAllBrowsers"}
+{"level":30,"time":"2025-06-25T18:37:42.329Z","pid":14264,"hostname":"Eshaanlap","msg":"End of node method closeAllBrowsers"}
