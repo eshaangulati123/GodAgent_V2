@@ -1,0 +1,43 @@
+{
+  "test_name": "Optimized System Performance",
+  "total_duration": 7.204870223999023,
+  "action_count": 4,
+  "measurements": [
+    {
+      "action": "click",
+      "duration": 3.692751884460449,
+      "timestamp": 3.6982944011688232
+    },
+    {
+      "action": "write",
+      "duration": 1.1036922931671143,
+      "timestamp": 4.802380561828613
+    },
+    {
+      "action": "click",
+      "duration": 1.1895849704742432,
+      "timestamp": 5.9919655323028564
+    },
+    {
+      "action": "done",
+      "duration": 1.1107535362243652,
+      "timestamp": 7.102719068527222
+    }
+  ],
+  "ocr_stats": {
+    "total_readers": 1,
+    "total_init_time": 2.5013883113861084,
+    "total_usage": 2,
+    "average_init_time": 2.5013883113861084,
+    "readers_by_language": [
+      "en"
+    ],
+    "usage_counts": {
+      "en": 2
+    },
+    "initialization_times": {
+      "en": 2.5013883113861084
+    }
+  },
+  "timestamp": "2025-07-03T21:14:14.582086"
+}

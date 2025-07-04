@@ -24,6 +24,7 @@ from operate.utils.label import (
     get_label_coordinates,
 )
 from operate.utils.ocr import get_text_coordinates, get_text_element
+from operate.utils.ocr_manager import get_ocr_reader
 from operate.utils.screenshot import capture_screen_with_cursor, compress_screenshot
 from operate.utils.style import ANSI_BRIGHT_MAGENTA, ANSI_GREEN, ANSI_RED, ANSI_RESET
 
@@ -209,8 +210,8 @@ async def call_qwen_vl_with_ocr(messages, objective, model):
                         "[call_qwen_vl_with_ocr][click] text_to_click",
                         text_to_click,
                     )
-                # Initialize EasyOCR Reader
-                reader = easyocr.Reader(["en"])
+                # Get optimized EasyOCR Reader
+                reader = get_ocr_reader(["en"], model_name="qwen-vl")
 
                 # Read the screenshot
                 result = reader.readtext(screenshot_filename)
@@ -373,8 +374,8 @@ async def call_gpt_4o_with_ocr(messages, objective, model):
                         "[call_gpt_4o_with_ocr][click] text_to_click",
                         text_to_click,
                     )
-                # Initialize EasyOCR Reader
-                reader = easyocr.Reader(["en"])
+                # Get optimized EasyOCR Reader
+                reader = get_ocr_reader(["en"], model_name="gpt-4o")
 
                 # Read the screenshot
                 result = reader.readtext(screenshot_filename)
@@ -483,7 +484,7 @@ async def call_gpt_4_1_with_ocr(messages, objective, model):
                         "[call_gpt_4_1_with_ocr][click] text_to_click",
                         text_to_click,
                     )
-                reader = easyocr.Reader(["en"])
+                reader = get_ocr_reader(["en"], model_name="gpt-4.1")
 
                 result = reader.readtext(screenshot_filename)
 
@@ -592,8 +593,8 @@ async def call_o1_with_ocr(messages, objective, model):
                         "[call_o1_with_ocr][click] text_to_click",
                         text_to_click,
                     )
-                # Initialize EasyOCR Reader
-                reader = easyocr.Reader(["en"])
+                # Get optimized EasyOCR Reader
+                reader = get_ocr_reader(["en"], model_name="o1")
 
                 # Read the screenshot
                 result = reader.readtext(screenshot_filename)
@@ -981,8 +982,8 @@ async def call_claude_3_with_ocr(messages, objective, model):
                         "[call_claude_3_ocr][click] text_to_click",
                         text_to_click,
                     )
-                # Initialize EasyOCR Reader
-                reader = easyocr.Reader(["en"])
+                # Get optimized EasyOCR Reader
+                reader = get_ocr_reader(["en"], model_name="claude-3")
 
                 # Read the screenshot
                 result = reader.readtext(screenshot_filename)

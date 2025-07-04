@@ -1,0 +1,30 @@
+{
+  "test_name": "Current System Performance",
+  "total_duration": 9.709565162658691,
+  "easyocr_init_count": 2,
+  "total_easyocr_init_time": 5.001911163330078,
+  "action_count": 4,
+  "measurements": [
+    {
+      "action": "click",
+      "duration": 3.7007572650909424,
+      "timestamp": 3.7007572650909424
+    },
+    {
+      "action": "write",
+      "duration": 1.1109061241149902,
+      "timestamp": 4.811663389205933
+    },
+    {
+      "action": "click",
+      "duration": 3.683885335922241,
+      "timestamp": 8.496549129486084
+    },
+    {
+      "action": "done",
+      "duration": 1.1121563911437988,
+      "timestamp": 9.608705520629883
+    }
+  ],
+  "timestamp": "2025-07-03T21:07:00.069774"
+}
