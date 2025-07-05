@@ -144,16 +144,28 @@ def main(model, terminal_prompt, voice_mode=False, verbose_mode=False,
     print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Checking for sequential tasks...")
     
     try:
-        from operate.utils.task_classifier import TaskClassifier, TaskType
-        print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Task classifier imported successfully")
+        # Try new LLM-based classifier first
+        from operate.utils.llm_task_classifier import LLMTaskClassifier, TaskType
+        print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Using LLM-based task classifier")
         
-        classifier = TaskClassifier()
+        classifier = LLMTaskClassifier()
         classification_result = classifier.classify_task(objective)
         print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Task classified as: {classification_result.task_type}")
+        print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Reasoning: {classification_result.reasoning}")
     except Exception as e:
-        print(f"{ANSI_RED}[Self-Operating Computer][Error] Task classification failed: {e}{ANSI_RESET}")
-        # Fall back to original routing
-        classification_result = None
+        print(f"{ANSI_YELLOW}[Self-Operating Computer][Warning] LLM classifier failed: {e}{ANSI_RESET}")
+        try:
+            # Fallback to rule-based classifier
+            from operate.utils.task_classifier import TaskClassifier, TaskType
+            print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Falling back to rule-based classifier")
+            
+            classifier = TaskClassifier()
+            classification_result = classifier.classify_task(objective)
+            print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Task classified as: {classification_result.task_type}")
+        except Exception as e2:
+            print(f"{ANSI_RED}[Self-Operating Computer][Error] All task classifiers failed: {e2}{ANSI_RESET}")
+            # Fall back to original routing
+            classification_result = None
     
     if classification_result and classification_result.task_type == TaskType.SEQUENTIAL:
         print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Sequential task detected with {len(classification_result.subtasks)} subtasks")
@@ -163,7 +175,7 @@ def main(model, terminal_prompt, voice_mode=False, verbose_mode=False,
             print(f"\n{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Executing subtask {subtask.order}/{len(classification_result.subtasks)}: {subtask.description}")
             
             # Route each subtask appropriately
-            if subtask.task_type == TaskType.BROWSER and BROWSER_AGENT_AVAILABLE and not no_browser_agent:
+            if subtask.task_type == "browser" and BROWSER_AGENT_AVAILABLE and not no_browser_agent:
                 print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Routing subtask to Browser Use Agent")
                 try:
                     session_id = f"browser_subtask_{i}_{int(time.time())}"
@@ -181,7 +193,7 @@ def main(model, terminal_prompt, voice_mode=False, verbose_mode=False,
                     print(f"{ANSI_RED}[Self-Operating Computer][Error] Subtask {subtask.order} failed: {e}{ANSI_RESET}")
                     return
                     
-            elif subtask.task_type == TaskType.DESKTOP or no_browser_agent:
+            elif subtask.task_type == "desktop" or no_browser_agent:
                 print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Routing subtask to OCR system")
                 
                 # Execute subtask with OCR system
@@ -192,15 +204,23 @@ def main(model, terminal_prompt, voice_mode=False, verbose_mode=False,
                 loop_count = 0
                 subtask_session_id = None
                 subtask_complete = False
+                start_time = time.time()
+                max_time = 300  # 5 minutes timeout
                 
-                while not subtask_complete and loop_count < 10:
+                while not subtask_complete and loop_count < 20 and (time.time() - start_time) < max_time:
                     try:
+                        print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Subtask {subtask.order} - Attempt {loop_count + 1}/20")
                         operations, subtask_session_id = asyncio.run(
                             get_next_action(model, messages, subtask.description, subtask_session_id)
                         )
                         
                         subtask_complete = operate(operations, model)
                         loop_count += 1
+                        
+                        if subtask_complete:
+                            print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Subtask {subtask.order} completed on attempt {loop_count}")
+                        else:
+                            print(f"{ANSI_YELLOW}[Self-Operating Computer]{ANSI_RESET} Subtask {subtask.order} continuing... (attempt {loop_count})")
                         
                     except Exception as e:
                         print(f"{ANSI_RED}[Self-Operating Computer][Error] Subtask {subtask.order} failed: {e}{ANSI_RESET}")
@@ -209,7 +229,12 @@ def main(model, terminal_prompt, voice_mode=False, verbose_mode=False,
                 if subtask_complete:
                     print(f"{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} Subtask {subtask.order} completed successfully")
                 else:
-                    print(f"{ANSI_RED}[Self-Operating Computer][Error] Subtask {subtask.order} exceeded maximum attempts{ANSI_RESET}")
+                    elapsed_time = time.time() - start_time
+                    if elapsed_time >= max_time:
+                        print(f"{ANSI_RED}[Self-Operating Computer][Error] Subtask {subtask.order} timed out after {elapsed_time:.1f} seconds{ANSI_RESET}")
+                    else:
+                        print(f"{ANSI_RED}[Self-Operating Computer][Error] Subtask {subtask.order} exceeded maximum attempts ({loop_count}/{20}){ANSI_RESET}")
+                    print(f"{ANSI_YELLOW}[Self-Operating Computer][Debug] Subtask description: {subtask.description}{ANSI_RESET}")
                     return
         
         print(f"\n{ANSI_GREEN}[Self-Operating Computer]{ANSI_RESET} All sequential subtasks completed successfully!")

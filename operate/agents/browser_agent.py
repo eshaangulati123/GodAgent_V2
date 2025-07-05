@@ -9,6 +9,7 @@ import asyncio
 import logging
 import os
 import tempfile
+import time
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 import json
@@ -181,7 +182,7 @@ class BrowserAgent:
             self.model_name = model
             self._initialize_llm()
         
-        self.session_id = session_id or f"browser_session_{asyncio.get_event_loop().time()}"
+        self.session_id = session_id or f"browser_session_{time.time()}"
         
         logger.info(f"Executing browser task: {objective}")
         logger.info(f"Using model: {self.model_name}")
@@ -201,8 +202,36 @@ class BrowserAgent:
                     channel='chrome'  # Use actual Chrome instead of Chromium
                 )
                 
+                # Enhanced task description with file upload instructions
+                enhanced_task = f"""
+{objective}
+
+IMPORTANT FILE UPLOAD INSTRUCTIONS:
+When Browser Use responds with "To upload files please use a specific function to upload files", 
+you need to determine if it's a real file upload or a false positive:
+
+1. **FOR ATTACHMENT/UPLOAD BUTTONS (paperclip icons, "Attach files" buttons)**:
+   Call: "Find and upload file"
+   Parameters: {{"file_description": "n8n file", "selector": "button[data-tooltip='Attach files']"}}
+
+2. **FOR SEND/SUBMIT BUTTONS (incorrectly blocked by Browser Use)**:
+   Call: "Force click element" 
+   Parameters: {{"index": [element_index], "reason": "Send button falsely detected as file upload"}}
+
+How to tell the difference:
+- If the element is an attachment icon (📎), "Attach files" button, or file input → Use "Find and upload file"
+- If the element is a "Send" button, "Submit" button, or similar action button → Use "Force click element"
+
+Available actions:
+1. "Find and upload file" - For real file upload elements
+2. "Upload specific file" - When you have exact file path
+3. "Force click element" - For Send buttons falsely blocked by Browser Use
+
+Never retry clicking blocked elements - always use the appropriate action above.
+"""
+
                 agent = Agent(
-                    task=objective,
+                    task=enhanced_task,
                     llm=self.current_llm,
                     browser_session=browser_session,
                     controller=file_upload_controller if FILE_UPLOAD_AVAILABLE else None,
@@ -212,11 +241,39 @@ class BrowserAgent:
                 )
                 logger.info("Browser Use will use your existing Chrome profile with saved logins")
                 if FILE_UPLOAD_AVAILABLE:
-                    logger.info("✓ File upload actions enabled - can upload files by description (e.g., 'attach n8n file')")
+                    logger.info("✓ File upload actions enabled with enhanced LLM instructions")
             else:
                 # Use default Browser Use configuration (fresh Chromium instance)
+                # Enhanced task description with file upload instructions
+                enhanced_task = f"""
+{objective}
+
+IMPORTANT FILE UPLOAD INSTRUCTIONS:
+When Browser Use responds with "To upload files please use a specific function to upload files", 
+you need to determine if it's a real file upload or a false positive:
+
+1. **FOR ATTACHMENT/UPLOAD BUTTONS (paperclip icons, "Attach files" buttons)**:
+   Call: "Find and upload file"
+   Parameters: {{"file_description": "n8n file", "selector": "button[data-tooltip='Attach files']"}}
+
+2. **FOR SEND/SUBMIT BUTTONS (incorrectly blocked by Browser Use)**:
+   Call: "Force click element" 
+   Parameters: {{"index": [element_index], "reason": "Send button falsely detected as file upload"}}
+
+How to tell the difference:
+- If the element is an attachment icon (📎), "Attach files" button, or file input → Use "Find and upload file"
+- If the element is a "Send" button, "Submit" button, or similar action button → Use "Force click element"
+
+Available actions:
+1. "Find and upload file" - For real file upload elements
+2. "Upload specific file" - When you have exact file path
+3. "Force click element" - For Send buttons falsely blocked by Browser Use
+
+Never retry clicking blocked elements - always use the appropriate action above.
+"""
+                
                 agent = Agent(
-                    task=objective,
+                    task=enhanced_task,
                     llm=self.current_llm,
                     controller=file_upload_controller if FILE_UPLOAD_AVAILABLE else None,
                     use_vision=True,
@@ -225,7 +282,7 @@ class BrowserAgent:
                 )
                 logger.info("Browser Use will launch a fresh browser instance")
                 if FILE_UPLOAD_AVAILABLE:
-                    logger.info("✓ File upload actions enabled - can upload files by description (e.g., 'attach n8n file')")
+                    logger.info("✓ File upload actions enabled with enhanced LLM instructions")
             
             # Execute the task
             logger.info("Starting browser task execution...")
@@ -269,7 +326,7 @@ class BrowserAgent:
                         'step': i + 1,
                         'description': getattr(action_item, 'description', f"Browser action {i+1}"),
                         'success': True,
-                        'timestamp': asyncio.get_event_loop().time()
+                        'timestamp': time.time()
                     }
                     
                     # Add specific action details if available
@@ -287,7 +344,7 @@ class BrowserAgent:
                 'description': f"Browser task completed successfully",
                 'success': True,
                 'total_steps': len(actions),
-                'execution_time': asyncio.get_event_loop().time(),
+                'execution_time': time.time(),
                 'agent_type': 'browser_use'
             })
             
